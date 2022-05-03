@@ -1,100 +1,154 @@
-const BRTA_ATTRIBUTION = 'Kaartgegevens: © <a href="http://www.cbs.nl">CBS</a>, <a href="http://www.kadaster.nl">Kadaster</a>, <a href="http://openstreetmap.org">OpenStreetMap</a><span class="printhide">-auteurs (<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>).</span>'
+// Definitie Rijksdriehoekstelsel (EPSG:28992)
+var res = [3440.640, 1720.320, 860.160, 430.080, 215.040, 107.520, 53.760, 26.880, 13.440, 6.720, 3.360, 1.680, 0.840, 0.420, 0.210, 0.105];
 
-// a function for obtaining a layer object, which can be added to the map
-function getWMTSLayer (layername, attribution) {
-  return L.tileLayer(`https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/${layername}/EPSG:28992/{z}/{x}/{y}.png`, {
-    WMTS: false,
-    attribution: attribution,
-    crossOrigin: true
-  })
-}
-
-// 1. BRT-backdrop map variants from PDOK:
-const brtRegular = getWMTSLayer('standaard', BRTA_ATTRIBUTION)
-const brtGrijs = getWMTSLayer('grijs', BRTA_ATTRIBUTION)
-const brtPastel = getWMTSLayer('pastel', BRTA_ATTRIBUTION)
-const brtWater = getWMTSLayer('water', BRTA_ATTRIBUTION)
-
-
-// see "Nederlandse richtlijn tiling" https://www.geonovum.nl/uploads/standards/downloads/nederlandse_richtlijn_tiling_-_versie_1.1.pdf
-// Resolution (in pixels per meter) for each zoomlevel
-var res = [3440.640, 1720.320, 860.160, 430.080, 215.040, 107.520, 53.760, 26.880, 13.440, 6.720, 3.360, 1.680, 0.840, 0.420]
-
-// The map object - Javascript object that represents the zoomable map component
-// Projection parameters for RD projection (EPSG:28992):
-var map = L.map('map-canvas', {
+var map = L.map('map-canvas', { // eslint-disable-line no-undef
   continuousWorld: true,
-  crs: new L.Proj.CRS('EPSG:28992', '+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +units=m +towgs84=565.2369,50.0087,465.658,-0.406857330322398,0.350732676542563,-1.8703473836068,4.0812 +no_defs', {
-    transformation: L.Transformation(-1, -1, 0, 0),
+  crs: new L.Proj.CRS('EPSG:28992', '+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +units=m +towgs84=565.2369,50.0087,465.658,-0.406857330322398,0.350732676542563,-1.8703473836068,4.0812 +no_defs', { // eslint-disable-line no-undef
+    transformation: L.Transformation(-1, -1, 0, 0), // eslint-disable-line no-undef
     resolutions: res,
     origin: [-285401.920, 903401.920],
-    bounds: L.bounds([-285401.920, 903401.920], [595401.920, 22598.080])
+    bounds: L.bounds([-285401.920, 903401.920], [595401.920, 22598.080]) // eslint-disable-line no-undef
   }),
-  layers: [
-    brtRegular
-  ],
-  center: [52.0047529, 4.3702697],
+  layers: [],
+  center: [52.070, 4.316667],
   zoom: 10,
-})
 
-// 2. aerial photo * not working at this moment (see Assignment)
-//    - can be switched on/off by toggle thru L.control.layers (see below in this script)
-var wms_aerial_url = "https://geodata1.nationaalgeoregister.nl/luchtfoto/wms?"; 
-var basemap_aerial = new L.tileLayer.wms(wms_aerial_url, {
-    layers: ['luchtfoto_png'],
-    styles: '',
-    format: 'image/png',
-    transparent: true,
-    pointerCursor: true
 });
-basemap_aerial.getAttribution = function() {
-    return 'Luchtfoto WMS <a href="https://www.kadaster.nl">Kadaster</a>.';
-}
+map.attributionControl.setPrefix('');
 
+// 1. BRT-Achtergrondkaart van PDOK:
+var options = { maxZoom: 14, attribution: 'Map data: <a href="http://www.pdok.nl">BRT Achtergrondkaart</a>' }
+var basemap_pdok = new L.tileLayer('https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/standaard/EPSG:28992/{z}/{x}/{y}.png', options);
+
+
+basemap_pdok.getAttribution = function () {
+  return 'BRT Achtergrondkaart <a href="http://www.kadaster.nl">Kadaster</a>.';
+}
+basemap_pdok.addTo(map);
+
+// // 2. alternative base map: aerial photo - can be switched on/off by toggle thru L.control.layers (see below in this script)
+// var wms_aerial = "http://geodata1.nationaalgeoregister.nl/luchtfoto/wms?";
+// var basemap_aerial = new L.tileLayer.wms(wms_aerial, {
+//     layers: ['luchtfoto_png'],
+//     styles: '',
+//     crs: RD,
+//     format: 'image/png',
+//     transparent: true,
+//     pointerCursor: true
+// });
+// basemap_aerial.getAttribution = function() {
+//     return 'Luchtfoto WMS <a href="http://www.kadaster.nl">Kadaster</a>.';
+// }
 
 // 3. a thematic WMS as overlay map
-var wms_sound_url = "https://geodata.nationaalgeoregister.nl/rwsgeluidskaarten/ows?"
-var sound = new L.tileLayer.wms(wms_sound_url, {
-                        layers: ['Lden_2016'],
-                        styles: '',
-                        format: 'image/png',
-                        transparent: true,
-                        attribution: '© <a href="https://www.rws.nl/"> Rijkswaterstaat</a>',
-                        pointerCursor: true,
-                        }) ;
+var wms_sound = "https://geodata.nationaalgeoregister.nl/rwsgeluidskaarten/ows?"
+var sound = new L.tileLayer.wms(wms_sound, {
+  layers: ['Lden_2016'],
+  styles: '',
+  format: 'image/png',
+  transparent: true,
+  attribution: '© <a href="http://www.rws.nl/"> Rijkswaterstaat</a>',
+  pointerCursor: true,
+});
 
-var overlays = {
-    "Road noise [WMS]": sound,
-};
-
-//4. Part B Question 1 WMS layer showing parcels 
-var wms_parcel_url = "http://localhost:8080/geoserver/delft_parcels/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&STYLES&LAYERS=delft_parcels%3Aparcels&exceptions=application%2Fvnd.ogc.se_inimage&SRS=EPSG%3A28992&WIDTH=481&HEIGHT=769&BBOX=80274.01722408373%2C438543.7036555281%2C89455.2803996358%2C453203.1841520437"
-var parcel = new L.tileLayer.wms(wms_parcel_url, {
-                        layers: ['parcels'],
-                        styles: '',
-                        format: 'image/png',
-                        transparent: true,
-                        //attribution: '© <a href="https://www.rws.nl/"> Rijkswaterstaat</a>',
-                        pointerCursor: true,
-                        }) ;
-var overlays2 = {
-    "Parcels [WMS]": parcel,
-};
-
+// 4.a. this is to group the base layers (background)
 var baseLayers = {
-  'BRT-Achtergrondkaart [WMTS]': brtRegular,
-  'BRT-Achtergrondkaart Grijs [WMTS]': brtGrijs,
-  'BRT-Achtergrondkaart Pastel [WMTS]': brtPastel,
-  'BRT-Achtergrondkaart Water [WMTS]': brtWater,
-  "Aerial photo [WMS]": basemap_aerial,
-  "Parcels [WMS]": parcel,
+  "Topographical map": basemap_pdok
+};
+
+// 4.b. this is to group all other layers
+var overlays = {
+  "Road noise": sound,
+  "Events": events_wfs
+};
+
+events_wfs.addTo(map) ;
+
+// 3.c. this is the control for switching layers on and off - the variables baseLayers and overlays group the layers
+L.control.layers(baseLayers, overlays).addTo(map);
+
+// add geocoder to map
+var geocoder = L.Control.geocoder({
+  defaultMarkGeocode: false
+})
+  .on('markgeocode', function (e) {
+
+    if (window.polygon !== undefined){
+      window.map.removeLayer(window.polygon);
+    }
+
+
+    var bbox = e.geocode.bbox;
+    var poly = L.polygon([
+      bbox.getSouthEast(),
+      bbox.getNorthEast(),
+      bbox.getNorthWest(),
+      bbox.getSouthWest()
+    ]);
+    window.polygon = poly;
+    window.map.addLayer(window.polygon);
+    map.fitBounds(poly.getBounds());
+  })
+  .addTo(map);
+
+// add functionality to add to WFS
+var popup = L.popup();
+
+var url_wfs = 'https://varioscale.bk.tudelft.nl/geoserver/geoweb/ows?';
+var featuretype = "geoweb:events_all" ;		
+var namespace_prefix = "geoweb" ;
+var namespace_uri = "http://all.kinds.of.data" ;
+var geomPropertyName = "geoweb:geom" ;
+
+map.locate({setView: true, maxZoom: 16});
+function onLocationFound(e) {
+    var radius = e.accuracy;
+
+    L.marker(e.latlng).addTo(map)
+        .bindPopup("You are within " + radius + " meters from this point").openPopup();
+
+    L.circle(e.latlng, radius).addTo(map);
 }
 
-var all_overlays = {
-	"Road noise": sound, 
-	"Parcels": parcel, 
+map.on('locationfound', onLocationFound);
+function onLocationError(e) {
+    alert(e.message);
 }
 
-L.control.layers(baseLayers, all_overlays).addTo(map)
+map.on('locationerror', onLocationError);
 
+function insertWFS(lng, lat, event_name, reported_by) {
+  var featProperties = [
+    { "name": "geoweb:event_name", "value": event_name },
+    { "name": "geoweb:reported_by", "value": reported_by }
+  ];
 
+  insertPoint(url_wfs, featuretype, namespace_prefix, namespace_uri, featProperties, geomPropertyName, lng, lat);
+}
+
+function onMapClick(e) {
+  var lng = e.latlng.lng;
+  var lat = e.latlng.lat;
+
+  var js_function = ''
+    + ' var event_name = document.getElementById(\'event_name\').value ; '
+    + ' var reported_by = document.getElementById(\'reported_by\').value ; '
+    + ' insertWFS(' + lng + ',' + lat + ', event_name, reported_by) ; ';
+
+  var event_name = "";
+  var reported_by = "";
+  var popupContent = ''
+    + '<label for="event_name">Event name: </label><br>'
+    + '<input  type="text" id="event_name" name="event_name" value="' + event_name + '"/><br>'
+    + '<label for="reported_by" >Reported by: </label><br>'
+    + '<input  type="text" id="reported_by" name="reported_by" value="' + reported_by + '"/><br>'
+    //+'<button type="button" onclick="insertWFS('+lng+','+lat+', document.getElementById(\'event_name\').value, document.getElementById(\'reported_by\').value )">Insert point</button>' ;
+    + '<button type="button" onclick="' + js_function + '">Insert point</button>';
+
+  popup
+    .setLatLng(e.latlng)
+    .setContent(popupContent)
+    .openOn(map);
+}
+
+map.on('click', onMapClick);
